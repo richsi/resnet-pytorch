@@ -40,21 +40,6 @@ class BasicBlock(nn.Module):
 
 
 
-def make_layer(block, in_planes, planes, num_blocks, stride):
-  """
-  Args:
-    block:        which block class (Block)
-    in_planes:    number of channels coming in 
-    planes:       number of channels in each block
-    num_blocks:   how many blocks to stack
-    stride:       stride for the first block in this layer
-  """
-  layers = []
-  # First block of layer may downsample with stride
-  layers.append(block(in_planes, planes, stride))
-  for _ in range(1, num_blocks):
-    layers.append(block(planes, planes, stride=1)) # will always be of stride 1
-  return nn.Sequential(*layers)
 
 
 class ResNet34(nn.Module):
@@ -66,13 +51,13 @@ class ResNet34(nn.Module):
     self.bn = nn.BatchNorm2d(64)
     self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-    self.layer1 = make_layer(BasicBlock, 64, 64, num_blocks=3)
-    self.layer2 = make_layer(BasicBlock, 64, 128, num_blocks=4, stride=2)
-    self.layer3 = make_layer(BasicBlock, 128, 256, num_blocks=6, stride=2)
-    self.layer4 = make_layer(BasicBlock, 256, 512, num_blocks=3, stride=2)
+    self.layer1 = self._make_layer(BasicBlock, 64, 64, num_blocks=3, stride=1)
+    self.layer2 = self._make_layer(BasicBlock, 64, 128, num_blocks=4, stride=2)
+    self.layer3 = self._make_layer(BasicBlock, 128, 256, num_blocks=6, stride=2)
+    self.layer4 = self._make_layer(BasicBlock, 256, 512, num_blocks=3, stride=2)
 
     self.avgpool = nn.AdaptiveAvgPool2d(output_size=1)
-    self.fc = nn.Linear(in_features=512, out_features=1000, bias=True)
+    self.fc = nn.Linear(in_features=512, out_features=num_classes, bias=True)
 
     
   def forward(self, x):
@@ -82,5 +67,23 @@ class ResNet34(nn.Module):
     x = self.layer3(x)
     x = self.layer4(x)
     x = self.avgpool(x)
+    x = torch.flatten(x, 1) # (bs x 512) 
     x = self.fc(x)
     return x
+
+
+  def _make_layer(self, block, in_planes, planes, num_blocks, stride):
+    """
+    Args:
+      block:        which block class (Block)
+      in_planes:    number of channels coming in 
+      planes:       number of channels in each block
+      num_blocks:   how many blocks to stack
+      stride:       stride for the first block in this layer
+    """
+    layers = []
+    # First block of layer may downsample with stride
+    layers.append(block(in_planes, planes, stride))
+    for _ in range(1, num_blocks):
+      layers.append(block(planes, planes, stride=1)) # will always be of stride 1
+    return nn.Sequential(*layers)
