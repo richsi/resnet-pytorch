@@ -1,7 +1,8 @@
 import torch
+import torchvision
 
 from resnet.data import load_cifar10
-from resnet.resnet import ResNet34
+from resnet.resnet import ResNet
 
 if __name__ == "__main__":
 
@@ -12,4 +13,5 @@ if __name__ == "__main__":
 
   # for images, labels in loader:
 
-  model = ResNet34()
+  resnet = torchvision.models.resnet34()
+  print(resnet)
